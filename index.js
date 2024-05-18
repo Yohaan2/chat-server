@@ -5,7 +5,8 @@ import { createServer } from 'node:http'
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
-import { Message } from './models/Message.js';
+import { Message } from './src/models/Message.js';
+import { router } from './src/Routes/index.js';
 
 dotenv.config();
 
@@ -20,6 +21,8 @@ try {
 
 app.use(cors())
 app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const server = createServer(app);
 
@@ -80,9 +83,7 @@ io.on('connection', async (socket) => {
   }  
 });
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+app.use('/api', router);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

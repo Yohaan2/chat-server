@@ -5,6 +5,8 @@ const MessageSchema = new Schema({
   from: String,
   username: String,
   token: String,
+  email: String,
+  password: String,
 })
 
 export const Message = model('Message', MessageSchema, 'Messages');
