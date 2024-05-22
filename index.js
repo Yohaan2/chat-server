@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import mongoose from 'mongoose';
 import { Message } from './src/models/Message.js';
 import { router } from './src/Routes/index.js';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -35,52 +36,66 @@ const io = new Server(server, {
   connectionStateRecovery: {}
 });
 
+const userSockets = {};
+
 io.on('connection', async (socket) => {
   const token = socket.handshake.auth.token;
-  socket.on('message', async (body) => {
-    const username = socket.handshake.auth.username ?? 'Anonymous';
+  console.log(token);
+  let userID;
+  let username;
 
-    try {
-      const user = await Message.findOne({ username });
-      
-      if (!user) {
-        await Message.create({
-          body,
-          username: username,
-          token
-        })
+  if (token && token !== 'Anonymous') {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await Message.findOne({ username: payload.username });
+    if (!user) {
+      console.log('User not found');
+      return
+    }
+    userID = user._id;
+    username = user.username;
+    userSockets[userID] = {
+      username: username,
+      socketID: socket.id
+    };
+    socket.emit('user_connected', { userID, users: userSockets });
 
-      } else {
-        user.body.push(body);
-        await user.save();
-      }
-    } catch (error) {
-      console.log(error.message);
+    // socket.on('disconnect', () => {
+    //   userSockets.delete(user._id);
+    // });
+
+  }
+
+  socket.on('send_message_to_user', async (body) => {
+    const { to, message } = body;
+    console.log(body)
+
+    const toUser = userSockets[to];
+    if (toUser.socketID) {
+      socket.broadcast.to(toUser.socketID).emit('receive_message', {
+        message,
+        from: username,
+      });
     }
 
-    io.emit('message', {
-      body,
-      from: username,
-    })
   })
 
-  if(!socket.recovered) {
-    try {
-      const result = await Message.findOne({token});
+  // if(!socket.recovered) {
+  //   try {
+  //     const result = await Message.findOne({token});
 
-      if (!result) {
-        return;
-      }
-      result.body.forEach((field) => {
-        io.emit('message', {
-          body: field,
-          from: result.username,
-        })
-      })
-    } catch (error) {
-      console.log(error);
-    }
-  }  
+  //     if (!result) {
+  //       return;
+  //     }
+  //     result.body.forEach((field) => {
+  //       io.emit('message', {
+  //         body: field,
+  //         from: result.username,
+  //       })
+  //     })
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }  
 });
 
 app.use('/api', router);
