@@ -46,11 +46,11 @@ export const verifyUsername = async (req, res, next) => {
 export const verifyToken = async (req, res, next) => {
   const header = req.header('Authorization');
   const token = header.split(' ')[1];
-
+  
   if (!token) {
     return res.status(401).json({ message: 'Missing token' });
   }
-
+  
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await Message.findOne({ username: payload.username });
@@ -58,7 +58,6 @@ export const verifyToken = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid token' });
     }
     req.user = user.toObject();
-    next();
   } catch (error) {
     return res.status(403).json({ message: "Token not valid" });
   }

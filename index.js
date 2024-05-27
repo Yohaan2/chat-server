@@ -39,10 +39,26 @@ const io = new Server(server, {
 const userSockets = {};
 
 io.on('connection', async (socket) => {
-  const token = socket.handshake.auth.token;
-  console.log(token);
+  let token
   let userID;
   let username;
+
+  socket.on('authentication', async (data) => {
+    token = data;
+
+    socket.on('logout', (data) => {
+      token = data.token
+      delete userSockets[data.userID];
+    })
+
+  if (token === 'Anonymous') {
+    socket.on('anonymous_message', (data) => {
+      socket.broadcast.emit('receive_message', {
+        message: data.message,
+        from: 'Anonymous'
+      })
+    })
+  }
 
   if (token && token !== 'Anonymous') {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
@@ -67,7 +83,6 @@ io.on('connection', async (socket) => {
 
   socket.on('send_message_to_user', async (body) => {
     const { to, message } = body;
-    console.log(body)
 
     const toUser = userSockets[to];
     if (toUser.socketID) {
@@ -76,7 +91,7 @@ io.on('connection', async (socket) => {
         from: username,
       });
     }
-
+  })
   })
 
   // if(!socket.recovered) {
@@ -96,6 +111,8 @@ io.on('connection', async (socket) => {
   //     console.log(error);
   //   }
   // }  
+
+
 });
 
 app.use('/api', router);
