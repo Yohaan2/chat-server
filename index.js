@@ -45,42 +45,46 @@ io.on('connection', async (socket) => {
   let username;
 
   socket.on('authentication', async (data) => {
+    console.log('Authentication successful');
+
     token = data;
+    if (token && token !== 'Anonymous') {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await Message.findOne({ username: payload.username });
+      if (!user) {
+        console.log('User not found');
+        return
+      }
+      userID = user._id;
+      username = user.username;
+      userSockets[userID] = {
+        username: username,
+        socketID: socket.id
+      };
+      io.emit('user_connected', { userID, users: userSockets });
 
-    socket.on('logout', (data) => {
-      token = data.token
-      delete userSockets[data.userID];
-    })
-
-  if (token === 'Anonymous') {
-    socket.on('anonymous_message', (data) => {
-      socket.broadcast.emit('receive_message', {
-        message: data.message,
-        from: 'Anonymous'
-      })
-    })
+      // socket.on('disconnect', () => {
+      //   userSockets.delete(user._id);
+      // });
   }
+  })
 
-  if (token && token !== 'Anonymous') {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await Message.findOne({ username: payload.username });
-    if (!user) {
-      console.log('User not found');
-      return
-    }
-    userID = user._id;
-    username = user.username;
-    userSockets[userID] = {
-      username: username,
-      socketID: socket.id
-    };
-    socket.emit('user_connected', { userID, users: userSockets });
+  socket.on('logout', (data) => {
+    console.log('Logout successful');
+    token = data.token
+    delete userSockets[data.userID];
 
-    // socket.on('disconnect', () => {
-    //   userSockets.delete(user._id);
-    // });
+    io.emit('user_disconnected', { userID: data.userID, users: userSockets });
+  })
 
-  }
+  socket.on('anonymous_message', (data) => {
+    socket.broadcast.emit('receive_message', {
+      message: data.message,
+      from: 'Anonymous'
+    })
+  })
+
+
 
   socket.on('send_message_to_user', async (body) => {
     const { to, message } = body;
@@ -93,7 +97,7 @@ io.on('connection', async (socket) => {
       });
     }
   })
-  })
+
 
   // if(!socket.recovered) {
   //   try {
