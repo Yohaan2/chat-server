@@ -31,7 +31,7 @@ const PORT = process.env.PORT;
 
 const io = new Server(server, {
   cors: {
-    origin: 'https://chat-server-b4h1.onrender.com',
+    origin: '*',
   },
   connectionStateRecovery: {}
 });
@@ -39,6 +39,7 @@ const io = new Server(server, {
 const userSockets = {};
 
 io.on('connection', async (socket) => {
+  console.log('A new user connected');
   let token
   let userID;
   let username;
