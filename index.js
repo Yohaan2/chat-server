@@ -27,11 +27,11 @@ app.use(express.urlencoded({ extended: true }));
 
 const server = createServer(app);
 
-const PORT = 3001 || process.env.PORT;
+const PORT = process.env.PORT;
 
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: 'https://chat-server-b4h1.onrender.com',
   },
   connectionStateRecovery: {}
 });
