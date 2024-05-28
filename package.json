@@ -7,7 +7,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
+    "start": "node ./index.js",
     "dev": "node --watch ./index.js",
     "build": "node --build-from-source ./server/index.js"
   },
