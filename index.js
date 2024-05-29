@@ -43,6 +43,7 @@ io.on('connection', async (socket) => {
   let token
   let userID;
   let username;
+  console.log('userSockets', userSockets);
 
   socket.on('authentication', async (data) => {
     console.log('Authentication successful');
